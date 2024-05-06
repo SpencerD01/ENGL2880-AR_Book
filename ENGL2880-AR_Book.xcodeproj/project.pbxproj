@@ -11,6 +11,7 @@
 		903A0B702BB4D95500EC4DF8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903A0B6F2BB4D95500EC4DF8 /* ContentView.swift */; };
 		903A0B722BB4D96600EC4DF8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 903A0B712BB4D96600EC4DF8 /* Assets.xcassets */; };
 		903A0B752BB4D96600EC4DF8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 903A0B742BB4D96600EC4DF8 /* Preview Assets.xcassets */; };
+		90D909512BE86E0200A35319 /* FocusEntity in Frameworks */ = {isa = PBXBuildFile; productRef = 90D909502BE86E0200A35319 /* FocusEntity */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				90D909512BE86E0200A35319 /* FocusEntity in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,6 +85,9 @@
 			dependencies = (
 			);
 			name = "ENGL2880-AR_Book";
+			packageProductDependencies = (
+				90D909502BE86E0200A35319 /* FocusEntity */,
+			);
 			productName = "ENGL2880-AR_Book";
 			productReference = 903A0B6A2BB4D95500EC4DF8 /* ENGL2880-AR_Book.app */;
 			productType = "com.apple.product-type.application";
@@ -111,6 +116,9 @@
 				Base,
 			);
 			mainGroup = 903A0B612BB4D95500EC4DF8;
+			packageReferences = (
+				90D9094F2BE86E0200A35319 /* XCRemoteSwiftPackageReference "FocusEntity" */,
+			);
 			productRefGroup = 903A0B6B2BB4D95500EC4DF8 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -348,6 +356,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		90D9094F2BE86E0200A35319 /* XCRemoteSwiftPackageReference "FocusEntity" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/maxxfrazer/FocusEntity";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		90D909502BE86E0200A35319 /* FocusEntity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 90D9094F2BE86E0200A35319 /* XCRemoteSwiftPackageReference "FocusEntity" */;
+			productName = FocusEntity;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 903A0B622BB4D95500EC4DF8 /* Project object */;
 }
