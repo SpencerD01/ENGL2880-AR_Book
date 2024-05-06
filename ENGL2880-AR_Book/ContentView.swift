@@ -8,7 +8,8 @@
 import SwiftUI
 import RealityKit
 import ARKit
-import FocusEntity
+import SceneKit
+import UIKit
 
 struct ContentView : View {
     var body: some View {
@@ -35,21 +36,20 @@ struct ARViewContainer: UIViewRepresentable {
         arView.addSubview(coachingOverlay)
         
         #if DEBUG
-        arView.debugOptions = [.showAnchorGeometry]
+        arView.debugOptions = [.showAnchorGeometry, .showAnchorOrigins]
         #endif
         
         // Handle ARSession events via delegate
         context.coordinator.view = arView
         session.delegate = context.coordinator
         
-        // Handle taps
         arView.addGestureRecognizer(
             UITapGestureRecognizer(
                 target: context.coordinator,
                 action: #selector(Coordinator.handleTap)
             )
         )
-
+        
         return arView
         
     }
@@ -62,33 +62,73 @@ struct ARViewContainer: UIViewRepresentable {
     
     class Coordinator: NSObject, ARSessionDelegate {
         weak var view: ARView?
-        var focusEntity: FocusEntity?
+        var surfaces: [ModelEntity]?
+        let max_surfaces = 5
 
         func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
-            guard let view = self.view else { return }
-            debugPrint("Anchors added to the scene: ", anchors)
-            self.focusEntity = FocusEntity(on: view, style: .classic(color: .yellow))
+            //guard let view = self.view else { return }
+            //debugPrint("Anchors added to the scene: ", anchors)
         }
         
-        @objc func handleTap() {
-            debugPrint("a")
-            guard let view = self.view, let focusEntity = self.focusEntity else { return }
-
-            // Create a new anchor to add content to
-            let anchor = AnchorEntity(/*AnchoringComponent.Target.plane(.any, classification: .any, minimumBounds: [0, 0])*/)
-            view.scene.anchors.append(anchor)
-
-            // Add a Box entity with a blue material
+        @objc func handleTap(_ sender: UITapGestureRecognizer) {
+            guard let view = self.view else { return }
+            debugPrint("New tap")
             
-            let box = MeshResource.generateBox(size: 0.5, cornerRadius: 0.05)
-            let material = SimpleMaterial(color: .blue, isMetallic: true)
-            let diceEntity = ModelEntity(mesh: box, materials: [material])
-            diceEntity.position = focusEntity.position
+            let touchLocation = sender.location(in: view)
+            debugPrint(view.raycast(from: touchLocation, allowing: .existingPlaneGeometry, alignment: .any))
+            guard let raycastResult = view.raycast(from: touchLocation, allowing: .existingPlaneGeometry, alignment: .any).first else {
+                debugPrint("No surface detected, try getting closer.")
+                return
+            }
+            
+            let int_anchor = raycastResult.anchor
+            
+            if let planeAnchor = int_anchor as? ARPlaneAnchor {
+                debugPrint(planeAnchor.planeExtent)
+                //guard let num_surfaces = self.surfaces?.count else { return <#default value#> }
+                
+                
+                let anchor = AnchorEntity()
+                view.scene.anchors.append(anchor)
+                
+                let box = MeshResource.generateBox(width: Float(planeAnchor.planeExtent.width), height: Float(planeAnchor.planeExtent.height), depth: 0.01)
+                let material = SimpleMaterial(color: .white, isMetallic: false)
+                let text = MeshResource.generateText("Testing TESTING TESTRINGRTGDSKLFNSALKFJAKLF", extrusionDepth: 0.01, alignment: .center, lineBreakMode: .byWordWrapping)
+                let planeEntity = ModelEntity(mesh: box, materials: [material])
+                debugPrint(planeAnchor.transform)
+                let translation = simd_float3(
+                    planeAnchor.transform.columns.3.x,
+                    planeAnchor.transform.columns.3.y,
+                    planeAnchor.transform.columns.3.z
+                )
+                debugPrint(planeAnchor.center)
+                var transform = planeAnchor.transform
+                transform.columns.3 = transform.columns.3 + simd_make_float4(planeAnchor.center * 2)
+                let z_angle = simd_float4x4(simd_quatf(angle: -1.5708, axis: simd_float3(1, 0, 0)))
+                transform = matrix_multiply(transform, z_angle)
+                
+                //planeEntity.position = translation + planeAnchor.center
+                //planeEntity.transform.rotation = planeAnchor.transform.rotation
+                planeEntity.transform = Transform(matrix: transform)
+                debugPrint(planeAnchor.transform)
+                debugPrint("New shape!!")
+                anchor.addChild(planeEntity)
+              }
+            else {
+                debugPrint("Not a ARPlaneAnchor: ", type(of: int_anchor))
+                view.session.remove(anchor: int_anchor!)
+            }
+            
 
-            anchor.addChild(diceEntity)
-            debugPrint("Done!")
             
-            
+
+            // Add the sticky note to the scene's entity hierarchy.
+            //arView.scene.addAnchor(frame)
+
+            // Add the sticky note's view to the view hierarchy.
+            //guard let stickyView = frame.view else { return }
+            //arView.insertSubview(stickyView, belowSubview: trashZone)
+
         }
     }
     
