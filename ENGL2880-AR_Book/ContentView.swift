@@ -66,10 +66,46 @@ struct ARViewContainer: UIViewRepresentable {
         var surfaces: [ModelEntity]?
         let model = Resnet50Int8LUT()
         let max_surfaces = 5
+        var context = CIContext()
 
         func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
             //guard let view = self.view else { return }
             //debugPrint("Anchors added to the scene: ", anchors)
+        }
+        
+        func assertCropAndScaleValid(_ pixelBuffer: CVPixelBuffer, _ cropRect: CGRect, _ scaleSize: CGSize) {
+            let originalWidth: CGFloat = CGFloat(CVPixelBufferGetWidth(pixelBuffer))
+            let originalHeight: CGFloat = CGFloat(CVPixelBufferGetHeight(pixelBuffer))
+
+            assert(CGRect(x: 0, y: 0, width: originalWidth, height: originalHeight).contains(cropRect))
+            assert(scaleSize.width > 0 && scaleSize.height > 0)
+        }
+
+        func createCroppedPixelBufferCoreImage(pixelBuffer: CVPixelBuffer,
+                                               cropRect: CGRect,
+                                               scaleSize: CGSize,
+                                               context: inout CIContext
+        ) -> CVPixelBuffer {
+            assertCropAndScaleValid(pixelBuffer, cropRect, scaleSize)
+            var image = CIImage(cvImageBuffer: pixelBuffer)
+            image = image.cropped(to: cropRect)
+
+            let scaleX = scaleSize.width / image.extent.width
+            let scaleY = scaleSize.height / image.extent.height
+
+            image = image.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+            image = image.transformed(by: CGAffineTransform(translationX: -image.extent.origin.x, y: -image.extent.origin.y))
+
+            var output: CVPixelBuffer? = nil
+
+            CVPixelBufferCreate(nil, Int(image.extent.width), Int(image.extent.height), kCVPixelFormatType_32BGRA, nil, &output)
+
+            if output != nil {
+                context.render(image, to: output!)
+            } else {
+                fatalError("Error")
+            }
+            return output!
         }
         
         func return_string() -> String {
@@ -78,9 +114,20 @@ struct ARViewContainer: UIViewRepresentable {
             let current_frame = self.view?.session.currentFrame
             guard let imageBuffer = current_frame?.capturedImage else { return "[Insert poem here]" }
 
-            let imageSize = CGSize(width: CVPixelBufferGetWidth(imageBuffer), height: CVPixelBufferGetHeight(imageBuffer))
+            //let imageSize = CGSize(width: CVPixelBufferGetWidth(imageBuffer), height: CVPixelBufferGetHeight(imageBuffer))
             let viewPortSize = CGSize(width: target_width, height: target_height)
-
+            let scale = CGSize(width: 224.0, height: 224.0)
+            let cropRect = CGRect(
+                x: Double(1920 - target_width) / 2.0,
+                y: Double(1440 - target_width) / 2.0,
+                width: viewPortSize.width,
+                height: viewPortSize.height
+            ).integral
+            debugPrint(cropRect)
+            
+            let cropped_image = createCroppedPixelBufferCoreImage(pixelBuffer: imageBuffer, cropRect: cropRect, scaleSize: scale, context: &context)
+            
+            /*
             let interfaceOrientation : UIInterfaceOrientation
             interfaceOrientation = UIApplication.shared.statusBarOrientation
 
@@ -136,8 +183,11 @@ struct ARViewContainer: UIViewRepresentable {
             debugPrint(transformedImage.extent)
             debugPrint(cropRect.size)
             debugPrint(type(of: pixelBuffer))
-            let predicted_type = try? model.prediction(image: pixelBuffer!)
-            debugPrint(CVPixelBufferGetHeight(pixelBuffer!))
+            */
+            debugPrint(CVPixelBufferGetWidth(cropped_image))
+            debugPrint(CVPixelBufferGetHeight(cropped_image))
+            let predicted_type = try? model.prediction(image: cropped_image)
+            //debugPrint(CVPixelBufferGetHeight(pixelBuffer!))
             
             return predicted_type?.classLabel ?? "[Error, no label found]"
         }
