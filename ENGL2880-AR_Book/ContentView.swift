@@ -26,7 +26,7 @@ struct ARViewContainer: UIViewRepresentable {
 
         let session = arView.session
         let config = ARWorldTrackingConfiguration()
-        config.planeDetection = [.vertical/*, .horizontal*/]
+        config.planeDetection = [.vertical, .horizontal]
         config.environmentTexturing = .automatic
         session.run(config)
         
@@ -64,13 +64,12 @@ struct ARViewContainer: UIViewRepresentable {
     class Coordinator: NSObject, ARSessionDelegate {
         weak var view: ARView?
         var surfaces: [ModelEntity]?
-        let model = Resnet50Int8LUT()
+        let model = ARPlaneDetection_2()
         let max_surfaces = 5
         var context = CIContext()
 
         func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
-            //guard let view = self.view else { return }
-            //debugPrint("Anchors added to the scene: ", anchors)
+            guard let view = self.view else { return }
         }
         
         func assertCropAndScaleValid(_ pixelBuffer: CVPixelBuffer, _ cropRect: CGRect, _ scaleSize: CGSize) {
@@ -114,7 +113,6 @@ struct ARViewContainer: UIViewRepresentable {
             let current_frame = self.view?.session.currentFrame
             guard let imageBuffer = current_frame?.capturedImage else { return "[Insert poem here]" }
 
-            //let imageSize = CGSize(width: CVPixelBufferGetWidth(imageBuffer), height: CVPixelBufferGetHeight(imageBuffer))
             let viewPortSize = CGSize(width: target_width, height: target_height)
             let scale = CGSize(width: 224.0, height: 224.0)
             let cropRect = CGRect(
@@ -127,67 +125,9 @@ struct ARViewContainer: UIViewRepresentable {
             
             let cropped_image = createCroppedPixelBufferCoreImage(pixelBuffer: imageBuffer, cropRect: cropRect, scaleSize: scale, context: &context)
             
-            /*
-            let interfaceOrientation : UIInterfaceOrientation
-            interfaceOrientation = UIApplication.shared.statusBarOrientation
-
-            let image = CIImage(cvImageBuffer: imageBuffer)
-            debugPrint(image.extent)
-
-            // The camera image doesn't match the view rotation and aspect ratio
-            // Transform the image:
-
-            // 1) Convert to "normalized image coordinates"
-            let normalizeTransform = CGAffineTransform(scaleX: 1.0/imageSize.width, y: 1.0/imageSize.height)
-
-            // 2) Flip the Y axis (for some mysterious reason this is only necessary in portrait mode)
-            let flipTransform = (interfaceOrientation.isPortrait) ? CGAffineTransform(scaleX: -1, y: -1).translatedBy(x: -1, y: -1) : .identity
-
-            // 3) Apply the transformation provided by ARFrame
-            // This transformation converts:
-            // - From Normalized image coordinates (Normalized image coordinates range from (0,0) in the upper left corner of the image to (1,1) in the lower right corner)
-            // - To view coordinates ("a coordinate space appropriate for rendering the camera image onscreen")
-            // See also: https://developer.apple.com/documentation/arkit/arframe/2923543-displaytransform
-
-            guard let displayTransform = self.view?.session.currentFrame?.displayTransform(for: interfaceOrientation, viewportSize: viewPortSize) else { return "[Error: Display transform failed]" }
-
-            // 4) Convert to view size
-            let toViewPortTransform = CGAffineTransform(scaleX: viewPortSize.width, y: viewPortSize.height)
-
-            let cropRect = CGRect(
-                x: Double(1920 - target_width) / 2.0,
-                y: Double(1440 - target_width) / 2.0,
-                width: viewPortSize.width,
-                height: viewPortSize.height
-            ).integral
-            
-            // Transform the image and crop it to the viewport
-            let transformedImage = image.cropped(to: cropRect)
-            debugPrint(type(of: transformedImage))
-            debugPrint(transformedImage.extent)
-            
-            var pixelBuffer: CVPixelBuffer?
-            let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
-                         kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
-            let width:Int = target_width
-            let height:Int = target_height
-            CVPixelBufferCreate(kCFAllocatorDefault,
-                                width,
-                                height,
-                                kCVPixelFormatType_32BGRA,
-                                attrs,
-                                &pixelBuffer)
-            let context = CIContext()
-            context.render(transformedImage, to: pixelBuffer!)
-            debugPrint("trans size:")
-            debugPrint(transformedImage.extent)
-            debugPrint(cropRect.size)
-            debugPrint(type(of: pixelBuffer))
-            */
             debugPrint(CVPixelBufferGetWidth(cropped_image))
             debugPrint(CVPixelBufferGetHeight(cropped_image))
             let predicted_type = try? model.prediction(image: cropped_image)
-            //debugPrint(CVPixelBufferGetHeight(pixelBuffer!))
             
             return predicted_type?.classLabel ?? "[Error, no label found]"
         }
@@ -208,7 +148,6 @@ struct ARViewContainer: UIViewRepresentable {
             
             if let planeAnchor = int_anchor as? ARPlaneAnchor {
                 debugPrint(planeAnchor.planeExtent)
-                //guard let num_surfaces = self.surfaces?.count else { return <#default value#> }
                 let pa_width = Double(planeAnchor.planeExtent.width)
                 let pa_height = Double(planeAnchor.planeExtent.height)
                 let pa_x = Double(planeAnchor.center.x)
@@ -267,17 +206,6 @@ struct ARViewContainer: UIViewRepresentable {
                 debugPrint("Not a ARPlaneAnchor: ", type(of: int_anchor))
                 view.session.remove(anchor: int_anchor!)
             }
-            
-
-            
-
-            // Add the sticky note to the scene's entity hierarchy.
-            //arView.scene.addAnchor(frame)
-
-            // Add the sticky note's view to the view hierarchy.
-            //guard let stickyView = frame.view else { return }
-            //arView.insertSubview(stickyView, belowSubview: trashZone)
-
         }
     }
     

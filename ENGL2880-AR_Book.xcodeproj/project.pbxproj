@@ -13,6 +13,8 @@
 		903A0B752BB4D96600EC4DF8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 903A0B742BB4D96600EC4DF8 /* Preview Assets.xcassets */; };
 		907A057F2BE8DB8500B61946 /* Resnet50Int8LUT.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 907A057E2BE8DB8500B61946 /* Resnet50Int8LUT.mlmodel */; };
 		90D909512BE86E0200A35319 /* FocusEntity in Frameworks */ = {isa = PBXBuildFile; productRef = 90D909502BE86E0200A35319 /* FocusEntity */; };
+		90E3783D2BE97F0E0043B5E8 /* ARPlaneDetection1.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 90E3783C2BE97F0E0043B5E8 /* ARPlaneDetection1.mlmodel */; };
+		90E3783F2BE9D7460043B5E8 /* ARPlaneDetection 2.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 90E3783E2BE9D7450043B5E8 /* ARPlaneDetection 2.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +24,8 @@
 		903A0B712BB4D96600EC4DF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		903A0B742BB4D96600EC4DF8 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		907A057E2BE8DB8500B61946 /* Resnet50Int8LUT.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Resnet50Int8LUT.mlmodel; sourceTree = "<group>"; };
+		90E3783C2BE97F0E0043B5E8 /* ARPlaneDetection1.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ARPlaneDetection1.mlmodel; sourceTree = "<group>"; };
+		90E3783E2BE9D7450043B5E8 /* ARPlaneDetection 2.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = "ARPlaneDetection 2.mlmodel"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,8 +59,10 @@
 		903A0B6C2BB4D95500EC4DF8 /* ENGL2880-AR_Book */ = {
 			isa = PBXGroup;
 			children = (
+				90E3783C2BE97F0E0043B5E8 /* ARPlaneDetection1.mlmodel */,
 				907A057E2BE8DB8500B61946 /* Resnet50Int8LUT.mlmodel */,
 				903A0B6D2BB4D95500EC4DF8 /* AppDelegate.swift */,
+				90E3783E2BE9D7450043B5E8 /* ARPlaneDetection 2.mlmodel */,
 				903A0B6F2BB4D95500EC4DF8 /* ContentView.swift */,
 				903A0B712BB4D96600EC4DF8 /* Assets.xcassets */,
 				903A0B732BB4D96600EC4DF8 /* Preview Content */,
@@ -148,7 +154,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				90E3783D2BE97F0E0043B5E8 /* ARPlaneDetection1.mlmodel in Sources */,
 				903A0B702BB4D95500EC4DF8 /* ContentView.swift in Sources */,
+				90E3783F2BE9D7460043B5E8 /* ARPlaneDetection 2.mlmodel in Sources */,
 				903A0B6E2BB4D95500EC4DF8 /* AppDelegate.swift in Sources */,
 				907A057F2BE8DB8500B61946 /* Resnet50Int8LUT.mlmodel in Sources */,
 			);
