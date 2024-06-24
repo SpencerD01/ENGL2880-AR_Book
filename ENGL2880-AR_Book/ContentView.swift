@@ -36,9 +36,9 @@ struct ARViewContainer: UIViewRepresentable {
         coachingOverlay.goal = .horizontalPlane
         arView.addSubview(coachingOverlay)
         
-        #if DEBUG
-        arView.debugOptions = [.showAnchorGeometry, .showAnchorOrigins]
-        #endif
+        //#if DEBUG
+        //arView.debugOptions = [.showAnchorGeometry, .showAnchorOrigins]
+        //#endif
         
         // Handle ARSession events via delegate
         context.coordinator.view = arView
@@ -67,9 +67,12 @@ struct ARViewContainer: UIViewRepresentable {
         let model = ARPlaneDetection_2()
         let max_surfaces = 5
         var context = CIContext()
+        let string_gen = StringFinder()
+        var described_anchors: [ARPlaneAnchor: (AnchorEntity, ModelEntity)] = [:]
+        var ordered_descriptions: [(AnchorEntity, ModelEntity)] = []
+        //var active_descriptions: Int = 0
 
         func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
-            guard let view = self.view else { return }
         }
         
         func assertCropAndScaleValid(_ pixelBuffer: CVPixelBuffer, _ cropRect: CGRect, _ scaleSize: CGSize) {
@@ -128,8 +131,13 @@ struct ARViewContainer: UIViewRepresentable {
             debugPrint(CVPixelBufferGetWidth(cropped_image))
             debugPrint(CVPixelBufferGetHeight(cropped_image))
             let predicted_type = try? model.prediction(image: cropped_image)
+            let class_label = predicted_type?.classLabel ?? "[Error, no label found]"
             
-            return predicted_type?.classLabel ?? "[Error, no label found]"
+            debugPrint(class_label)
+            
+            let to_return = string_gen.return_writing_strings(environmentDesc: class_label)
+            
+            return to_return
         }
         
         @objc func handleTap(_ sender: UITapGestureRecognizer) {
@@ -140,33 +148,58 @@ struct ARViewContainer: UIViewRepresentable {
             let touchLocation = sender.location(in: view)
             debugPrint(view.raycast(from: touchLocation, allowing: .existingPlaneGeometry, alignment: .any))
             guard let raycastResult = view.raycast(from: touchLocation, allowing: .existingPlaneGeometry, alignment: .any).first else {
-                debugPrint("No surface detected, try getting closer.")
+                debugPrint("No surface detected, trsy getting closer.")
                 return
             }
-            
+            let raycast_pos = raycastResult.worldTransform.columns.3
             let int_anchor = raycastResult.anchor
             
             if let planeAnchor = int_anchor as? ARPlaneAnchor {
+                if let (old_anchor, old_child) = self.described_anchors[planeAnchor] {
+                    old_anchor.removeChild(old_child)
+                    view.scene.anchors.remove(old_anchor)
+                }
+                else if self.ordered_descriptions.count >= self.max_surfaces {
+                    let (old_anchor, old_child) = self.ordered_descriptions[0]
+                    old_anchor.removeChild(old_child)
+                    view.scene.anchors.remove(old_anchor)
+                    self.ordered_descriptions.remove(at: 0)
+                }
                 debugPrint(planeAnchor.planeExtent)
+                let cur_pos : simd_float4 = self.view?.session.currentFrame?.camera.transform.columns.3 ?? simd_float4(0, 0, 0, 0)
+                let dif_pos = raycast_pos - cur_pos
+                let tot = pow(dif_pos.w, 2) + pow(dif_pos.x, 2) + pow(dif_pos.y, 2) + pow(dif_pos.z, 2)
+                let dist = tot.squareRoot()
                 let pa_width = Double(planeAnchor.planeExtent.width)
                 let pa_height = Double(planeAnchor.planeExtent.height)
                 let pa_x = Double(planeAnchor.center.x)
                 let pa_y = Double(planeAnchor.center.y)
                 
-                let frame_width = pa_width * 0.75
-                let frame_height = pa_height * 0.75
+                let frame_width = pa_width * 0.80
+                let frame_height = pa_height * 0.80
                 
                 let anchor = AnchorEntity()
                 view.scene.anchors.append(anchor)
                 
                 //let box = MeshResource.generateBox(width: Float(pa_width / 2), height: Float(pa_height / 2), depth: 0.01)
-                let material = SimpleMaterial(color: .white, isMetallic: false)
+                //let material = SimpleMaterial(color: .white, isMetallic: true)
+                var material = PhysicallyBasedMaterial()
+                material.baseColor = PhysicallyBasedMaterial.BaseColor(tint:.white)
+                material.roughness = PhysicallyBasedMaterial.Roughness(floatLiteral: 0.0)
+                material.metallic = PhysicallyBasedMaterial.Metallic(floatLiteral: 1.0)
+                material.emissiveIntensity = 1.0
+                material.emissiveColor = PhysicallyBasedMaterial.EmissiveColor(color: .white)
                 
                 let message = return_string()
                 
-                let font_size = frame_width * frame_height * 2.0 / Double(message.count)
+                let font_size_a = frame_width * frame_height / Double(Double(message.count) * 3.6 - 100).squareRoot()
+                let font_size_b = Double(dist * 0.05)
+                debugPrint("Font sizes!")
+                debugPrint(font_size_a)
+                debugPrint(font_size_b)
+                let font_size = Double.minimum(font_size_a, font_size_b)
                 
-                let text_frame = CGRect(x: pa_x - frame_width / 2, y: pa_y - frame_height, width: frame_width, height: frame_height)
+                let text_frame = CGRect(x: pa_x - frame_width / 2, y: pa_y - frame_height * 0.4, width: frame_width, height: frame_height)
                 
                 let text = MeshResource.generateText(message, extrusionDepth: 0.01, font: UIFont.boldSystemFont(ofSize: font_size), containerFrame: text_frame, alignment: .left, lineBreakMode: .byWordWrapping)
                 let planeEntity = ModelEntity(mesh: text, materials: [material])
@@ -201,6 +234,8 @@ struct ARViewContainer: UIViewRepresentable {
                 debugPrint("New shape!!")
                 debugPrint(planeEntity.position)
                 anchor.addChild(planeEntity)
+                self.described_anchors[planeAnchor] = (anchor, planeEntity)
+                self.ordered_descriptions.append((anchor, planeEntity))
               }
             else {
                 debugPrint("Not a ARPlaneAnchor: ", type(of: int_anchor))
